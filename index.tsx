@@ -15,3 +15,11 @@ root.render(
   </React.StrictMode>
 );
    
+
+//npm run dev
+//git add .
+//git commit -m "Add New Feature"
+//git push origin main
+//npm run deploy
+//------------
+//
