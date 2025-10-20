@@ -5,9 +5,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
-  return {
-    base: '/image_sorted_Dev/',   // ✅ 저장소명과 완전히 일치해야 함
+  // ✅ Netlify(기본 빌드)는 '/', GitHub Pages 전용 모드는 '/image_sorted_Dev/'
+  const basePath = env.VITE_BASE_PATH || (mode === 'ghpages' ? '/image_sorted_Dev/' : '/');
 
+  return {
+    base: basePath,
     server: { port: 3000, host: '0.0.0.0' },
     plugins: [react()],
     define: {
