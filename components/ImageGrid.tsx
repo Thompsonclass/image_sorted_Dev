@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ImageFile } from '../types';
+import { TrashIcon, ExpandIcon, CheckIcon } from './Icons';
 
 interface ImageGridProps {
   images: ImageFile[];
@@ -41,7 +42,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, sortedIds, onImageClick, 
     if (!draggedItemId.current || !onReorder) return;
     
     const draggedId = draggedItemId.current;
-    if (draggedId === droppedOnId) return;
+    if (draggedId === droppedOnId) {
+      setDragOverId(null);
+      return;
+    };
 
     const fromIndex = sortedIds.indexOf(draggedId);
     const toIndex = sortedIds.indexOf(droppedOnId);
@@ -76,6 +80,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, sortedIds, onImageClick, 
         return (
           <div
             key={image.id}
+            data-id={image.id}
             className={itemClassName}
             onClick={() => onImageClick(image.id)}
             draggable={!!onReorder}
@@ -86,37 +91,43 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, sortedIds, onImageClick, 
             onDragLeave={onReorder ? handleDragLeave : undefined}
             onDragEnd={onReorder ? handleDragEnd : undefined}
           >
-            {showRemoveButton && (
-              <button
+            <div className="image-grid-item-overlay">
+              {showRemoveButton && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveImage(image.id);
+                  }}
+                  className="image-grid-item-overlay-button image-grid-item-remove-button"
+                  aria-label="이미지 제거"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              )}
+               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRemoveImage(image.id);
+                  onImageZoom(image);
                 }}
-                className="image-grid-item-overlay-button image-grid-item-remove-button"
-                aria-label="이미지 제거"
+                className="image-grid-item-overlay-button image-grid-item-zoom-button"
+                aria-label="이미지 확대"
               >
-                X
+                <ExpandIcon className="w-4 h-4" />
               </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onImageZoom(image);
-              }}
-              className="image-grid-item-overlay-button image-grid-item-zoom-button"
-              style={{ right: showRemoveButton ? '3rem' : '0.5rem' }}
-              aria-label="이미지 확대"
-            >
-              확대
-            </button>
+            </div>
             <img
               src={image.previewUrl}
               alt={image.file.name}
             />
             {isSorted && (
-              <div className="image-grid-item-badge">
-                {sortedIndex + 1}
-              </div>
+              <>
+                <div className="image-grid-item-badge">
+                  {sortedIndex + 1}
+                </div>
+                <div className="image-grid-item-sorted-indicator">
+                    <CheckIcon className="w-4 h-4 text-white" />
+                </div>
+              </>
             )}
           </div>
         );

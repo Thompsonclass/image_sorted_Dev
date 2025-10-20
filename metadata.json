@@ -1,5 +1,5 @@
 {
-  "name": "Image Sorter Pro",
-  "description": "An intuitive web application for sorting images with drag-and-drop, featuring a unified grid, real-time order display, dark mode, image zoom, and ZIP download functionality for a seamless workflow.",
+  "name": "이미지 정렬",
+  "description": "드래그 앤 드롭으로 이미지를 정렬하는 직관적인 웹 애플리케이션입니다. 통합된 그리드, 실시간 순서 표시, 다크 모드, 이미지 확대 및 ZIP 다운로드 기능을 통해 원활한 작업 흐름을 제공합니다.",
   "requestFramePermissions": []
 }

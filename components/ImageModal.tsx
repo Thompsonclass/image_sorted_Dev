@@ -38,7 +38,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ image, onClose }) => {
           className="modal-close-button"
           aria-label="닫기"
         >
-          X
+          &times;
         </button>
         <img
           src={image.previewUrl}
