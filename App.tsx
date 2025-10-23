@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ImageFile } from './types';
 import ImageGrid from './components/ImageGrid';
@@ -10,6 +11,43 @@ import {
 
 declare const JSZip: any;
 declare const saveAs: any;
+
+const processImage = (imageFile: ImageFile, quality: number): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return reject(new Error('Could not get canvas context'));
+      }
+      
+      if (imageFile.file.type === 'image/png') {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Canvas toBlob failed'));
+          }
+        },
+        'image/jpeg',
+        quality / 100
+      );
+    };
+    img.onerror = reject;
+    img.src = imageFile.previewUrl;
+  });
+};
+
 
 export default function App() {
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -26,6 +64,8 @@ export default function App() {
   const [swapInputA, setSwapInputA] = useState('');
   const [swapInputB, setSwapInputB] = useState('');
   
+  const [processImages, setProcessImages] = useState(false);
+
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme');
@@ -97,11 +137,24 @@ export default function App() {
     setIsDownloading(true);
     try {
       const zip = new JSZip();
-      sortedImages.forEach((imageFile, index) => {
-        const extension = imageFile.file.name.split('.').pop() || 'jpg';
-        const newFileName = `${String(index + 1).padStart(3, '0')}.${extension}`;
-        zip.file(newFileName, imageFile.file);
-      });
+      
+      if (processImages) {
+        const processingPromises = sortedImages.map(async (imageFile) => {
+            return processImage(imageFile, 100);
+        });
+        const processedBlobs = await Promise.all(processingPromises);
+        processedBlobs.forEach((blob, index) => {
+            const newFileName = `${String(index + 1).padStart(3, '0')}.jpg`;
+            zip.file(newFileName, blob);
+        });
+      } else {
+        sortedImages.forEach((imageFile, index) => {
+          const extension = imageFile.file.name.split('.').pop() || 'jpg';
+          const newFileName = `${String(index + 1).padStart(3, '0')}.${extension}`;
+          zip.file(newFileName, imageFile.file);
+        });
+      }
+
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       saveAs(zipBlob, 'sorted-images.zip');
     } catch (error) {
@@ -110,7 +163,7 @@ export default function App() {
     } finally {
       setIsDownloading(false);
     }
-  }, [sortedIds, sortedImages]);
+  }, [sortedIds, sortedImages, processImages]);
 
   const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
 
@@ -338,13 +391,31 @@ export default function App() {
                       variant="primary"
                     >
                       <DownloadIcon className="w-4 h-4 mr-2" />
-                      {isDownloading ? '압축 중...' : `ZIP으로 다운로드`}
+                      {isDownloading ? (processImages ? '처리 및 압축 중...' : '압축 중...') : `ZIP으로 다운로드`}
                     </ActionButton>
                   </div>
                 )}
               </div>
+
+              {sortedIds.length > 0 && (
+                <div className="mt-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                  <div className="flex items-center">
+                    <input
+                      id="process-images-checkbox"
+                      type="checkbox"
+                      checked={processImages}
+                      onChange={(e) => setProcessImages(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:ring-offset-gray-800 cursor-pointer"
+                    />
+                    <label htmlFor="process-images-checkbox" className="ml-3 block text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
+                      EXIF 제거 및 JPG로 변환하여 다운로드
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {sortedIds.length > 1 && (
-                <div className="swap-controls">
+                <div className="swap-controls mt-6">
                   <input
                     type="number"
                     className="swap-input"
@@ -376,15 +447,17 @@ export default function App() {
                 </div>
               )}
               {sortedIds.length > 0 ? (
-                <ImageGrid
-                  images={sortedImages}
-                  sortedIds={sortedIds}
-                  onImageClick={handleImageClick}
-                  onRemoveImage={handleRemoveImage}
-                  onImageZoom={handleOpenModal}
-                  showRemoveButton={false}
-                  onReorder={handleReorder}
-                />
+                <div className="mt-6">
+                  <ImageGrid
+                    images={sortedImages}
+                    sortedIds={sortedIds}
+                    onImageClick={handleImageClick}
+                    onRemoveImage={handleRemoveImage}
+                    onImageZoom={handleOpenModal}
+                    showRemoveButton={false}
+                    onReorder={handleReorder}
+                  />
+                </div>
               ) : (
                 <div className="placeholder">
                   <p>위 그리드에서 이미지를 선택하여 정렬을 시작하세요.</p>
